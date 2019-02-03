@@ -202,8 +202,10 @@ export const fileAdded = functions.storage
         console.log("object name is " + object.name);
         if (object.name) {
             let username: string = object.name.split("/")[0];
+            let folder: string = object.name.split("/")[1];
             console.log(username);
-            const photosRef = db.doc(`users/${username}/folders/Uncategorized/photos/${path.basename(object.name)}`);
+            console.log("folder is " + folder);
+            const photosRef = db.doc(`users/${username}/folders/${folder}/photos/${path.basename(object.name)}`);
             console.log(object.name);
             console.log(path.basename(object.name));
             photosRef.set({
@@ -220,6 +222,9 @@ export const fileAdded = functions.storage
             console.log(filePath);
             //call acquireCropBounds
             const result: string = await acquireCropBounds(filePath);
+            if (filePath.split("/")[0] === "safe") {
+                return "just return";
+            }
             if (result == "we love you amber") {
                 //delete original image
                 await gcs.bucket(fileBucket).file(filePath).delete();
