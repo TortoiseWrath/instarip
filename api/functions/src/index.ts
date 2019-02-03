@@ -51,7 +51,7 @@ export const acquireCropBounds = functions.https.onRequest((request, response) =
             response.send(error);
         }
         else {
-            response.send(cropBoundsFromVision(body);
+            response.send(cropBoundsFromVision(body));
         }
     });
 });
