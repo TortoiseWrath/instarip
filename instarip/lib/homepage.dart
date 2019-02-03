@@ -1,9 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:instarip/gallery.dart';
 import 'package:instarip/authentication.dart';
 import 'package:instarip/imageservice.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class GridList extends StatefulWidget {
   final String uid;
@@ -19,11 +18,17 @@ class GridListState extends State<GridList> {
   var _folders;
   var _loading = false;
 
+  // requestStoragePermission() async {
+  //   final res = await SimplePermissions.requestPermission(Permission.WriteExternalStorage);
+  //   print("permission request result is " + res.toString());
+  // }
+
   @override
   void initState() {
     super.initState();
     imageService.loading.listen((state) => setState(() => _loading = state));
     _folders = imageService.getFolders();
+    // requestStoragePermission();
   }
 
   @override
@@ -43,23 +48,22 @@ class GridListState extends State<GridList> {
                   top: false,
                   bottom: false,
                   child: FutureBuilder(
-                    future: _folders,
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        print(snapshot.data);
-                        List<GridPhotoItem> grid = List.from(snapshot.data.map((folder) => GridPhotoItem(folder: folder)));
-                        return GridView.count(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 4.0,
-                            crossAxisSpacing: 4.0,
-                            padding: const EdgeInsets.all(4.0),
-                            children: grid
-                        );
-                      } else {
-                        return Center(child: CircularProgressIndicator());
-                      }
-                    }
-                  )))
+                      future: _folders,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          // print(snapshot.data);
+                          List<GridPhotoItem> grid = List.from(snapshot.data
+                              .map((folder) => GridPhotoItem(folder: folder)));
+                          return GridView.count(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 4.0,
+                              crossAxisSpacing: 4.0,
+                              padding: const EdgeInsets.all(12.0),
+                              children: grid);
+                        } else {
+                          return Center(child: CircularProgressIndicator());
+                        }
+                      })))
         ]));
   }
 }
@@ -76,25 +80,13 @@ class GridPhotoItem extends StatefulWidget {
 }
 
 class GridPhotoItemState extends State<GridPhotoItem> {
-  String imageUrl;
+  Future<String> imageUrl;
 
   @override
   initState() {
     super.initState();
-    fetchImageUrl();
-  }
-
-  void fetchImageUrl() async {
-    var url = await FirebaseStorage.instance
-        .ref()
-        .child(this.widget.folder.uid)
-        .child(this.widget.folder.photos.last)
-        .getDownloadURL();
-    print(url);
-    setState(() {
-      this.imageUrl = url.toString();
-    });
-    return url;
+    imageUrl = imageService.getPhotoUrl(
+        widget.folder.uid, widget.folder.name, widget.folder.photos.last);
   }
 
   @override
@@ -105,15 +97,22 @@ class GridPhotoItemState extends State<GridPhotoItem> {
           Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => GalleryPage(title: 'InstaRip', folder: this.widget.folder)));
+                  builder: (context) => GalleryPage(
+                      title: 'InstaRip', folder: this.widget.folder)));
         },
-        child: Hero(
-            key: Key(widget.folder.name),
-            tag: widget.folder.name,
-            child: Image.network(
-              this.imageUrl,
-              fit: BoxFit.cover,
-            )));
+        child: FutureBuilder(
+          future: imageUrl,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return CachedNetworkImage(
+                imageUrl: snapshot.data,
+                placeholder: Center(child: CircularProgressIndicator()),
+                errorWidget: Icon(Icons.error),
+                fit: BoxFit.cover
+              );
+            }
+          },
+        ));
 
     return GridTile(
       footer: GestureDetector(

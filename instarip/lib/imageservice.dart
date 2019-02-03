@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-
 import 'authentication.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:rxdart/rxdart.dart';
@@ -47,7 +46,7 @@ class ImageService {
     return folders;
   }
 
-  Future<String> _getPhotoUrl(String uid, String folder, String file) async {
+  Future<String> getPhotoUrl(String uid, String folder, String file) async {
     var url = await FirebaseStorage.instance
         .ref()
         .child(uid)
@@ -61,7 +60,7 @@ class ImageService {
   Future<List> getPhotoUrls(Folder folder) async {
     List<String> urls = [];
     for (String photo in folder.photos) {
-      var url = await _getPhotoUrl(folder.uid, folder.name, photo);
+      var url = await getPhotoUrl(folder.uid, folder.name, photo);
       urls.add(url);
     }
     return urls;

@@ -1,11 +1,11 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:typed_data';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:photo_view/photo_view.dart';
-import 'package:instarip/homepage.dart';
-import 'package:instarip/authentication.dart';
 import 'package:instarip/imageservice.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:share/share.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class GalleryPage extends StatefulWidget {
   final String title;
@@ -51,25 +51,40 @@ class ImageGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-        padding: const EdgeInsets.only(top: 12.0),
+        padding: const EdgeInsets.all(12.0),
         child: GridView.count(
             crossAxisCount: 2,
+            mainAxisSpacing: 4.0,
+            crossAxisSpacing: 4.0,
             children: List.from(photos.map((photo) => _ImageTile(photo)))));
   }
 }
 
 class _ImageTile extends StatelessWidget {
-  const _ImageTile(this.gridImage);
+  const _ImageTile(this.imagePath);
 
-  final gridImage;
+  final String imagePath;
 
   void showPhoto(BuildContext context) {
+    var networkImage = CachedNetworkImage(
+      imageUrl: imagePath,
+      placeholder: Center(child: CircularProgressIndicator()),
+      errorWidget: Icon(Icons.error),
+    );
     Navigator.push(context,
         MaterialPageRoute<void>(builder: (BuildContext context) {
-      return Container(
-          child: PhotoView(
-        imageProvider: NetworkImage(this.gridImage),
-      ));
+      return Scaffold(
+        appBar: AppBar(actions: <Widget>[
+          IconButton(
+              icon: Icon(Icons.share),
+              onPressed: () async {
+                // final cache = await CacheManager.getInstance();
+                // final file = await cache.getFile(imagePath);
+                await Share.share(imagePath);
+              })
+        ]),
+        body: Container(child: networkImage),
+      );
     }));
   }
 
@@ -83,18 +98,16 @@ class _ImageTile extends StatelessWidget {
           showPhoto(context);
         },
         child: Hero(
-          key: Key(gridImage),
-          tag: gridImage,
-          child: new Container(
-              decoration: new BoxDecoration(
-            image: new DecorationImage(
-              image: new NetworkImage(gridImage),
-              fit: BoxFit.cover,
-            ),
-            borderRadius: new BorderRadius.all(const Radius.circular(10.0)),
+          key: Key(imagePath),
+          tag: imagePath,
+          child: Container(
+              child: CachedNetworkImage(
+                imageUrl: imagePath,
+                placeholder: Center(child: CircularProgressIndicator()),
+                errorWidget: Icon(Icons.error),
+                fit: BoxFit.cover),
           )),
         ),
-      ),
     );
   }
 }
