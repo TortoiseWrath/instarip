@@ -218,15 +218,17 @@ export const fileAdded = functions.storage
         if (object.name && path.basename(object.name).startsWith('cropped_')) {
             return "all good";
         }
-        let username: string = "userOne"
-        if (context.auth) 
-            username = context.auth.uid;
+        console.log("object name is " + object.name);
         if (object.name) {
-            const objectPathArr: string[] = object.name.split("/");
-            const objectName: string = objectPathArr[objectPathArr.length - 1];
-            const photosRef = db.doc(`users/${username}/folders/Uncategorized/photos/${objectName}`);
+            let username: string = object.name.split("/")[0];
+            let folder: string = object.name.split("/")[1];
+            console.log(username);
+            console.log("folder is " + folder);
+            const photosRef = db.doc(`users/${username}/folders/${folder}/photos/${path.basename(object.name)}`);
+            console.log(object.name);
+            console.log(path.basename(object.name));
             photosRef.set({
-                name: object.name,
+                name: path.basename(object.name),
                 createdAt: context.timestamp
             }).catch();
         }
@@ -239,6 +241,9 @@ export const fileAdded = functions.storage
             console.log(filePath);
             //call acquireCropBounds
             const result: string = await acquireCropBounds(filePath);
+            if (filePath.split("/")[0] === "safe") {
+                return "just return";
+            }
             if (result == "we love you amber") {
                 //delete original image
                 await gcs.bucket(fileBucket).file(filePath).delete();
