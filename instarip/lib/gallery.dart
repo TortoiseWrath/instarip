@@ -36,28 +36,15 @@ class _GalleryPageState extends State<GalleryPage> {
           future: _photos,
           builder: (context, snapshot) {
             return snapshot.hasData
-                ? ImageGrid(widget.folder.photos)
+                ? ImageGrid(snapshot.data)
                 : Center(child: CircularProgressIndicator());
           }),
     );
   }
 }
 
-List<Widget> _tiles = const <Widget>[
-  const _ImageTile('https://picsum.photos/200/300/?random'),
-  const _ImageTile('https://picsum.photos/201/300/?random'),
-  const _ImageTile('https://picsum.photos/202/300/?random'),
-  const _ImageTile('https://picsum.photos/203/300/?random'),
-  const _ImageTile('https://picsum.photos/204/300/?random'),
-  const _ImageTile('https://picsum.photos/205/300/?random'),
-  const _ImageTile('https://picsum.photos/206/300/?random'),
-  const _ImageTile('https://picsum.photos/207/300/?random'),
-  const _ImageTile('https://picsum.photos/208/300/?random'),
-  const _ImageTile('https://picsum.photos/209/300/?random'),
-];
-
 class ImageGrid extends StatelessWidget {
-  final photos;
+  final List<String> photos;
 
   const ImageGrid(this.photos);
 

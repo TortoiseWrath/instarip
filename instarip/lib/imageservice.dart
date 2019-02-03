@@ -54,11 +54,17 @@ class ImageService {
         .child(folder)
         .child(file)
         .getDownloadURL();
+    print(url.toString());
     return url.toString();
   }
 
   Future<List> getPhotoUrls(Folder folder) async {
-    return List.from(folder.photos.map((photo) => _getPhotoUrl(folder.uid, folder.name, photo)));
+    List<String> urls = [];
+    for (String photo in folder.photos) {
+      var url = await _getPhotoUrl(folder.uid, folder.name, photo);
+      urls.add(url);
+    }
+    return urls;
   }
 }
 
