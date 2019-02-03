@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(MyApp());
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+import 'package:watcher/watcher.dart';
+import 'dart:io';
+
+void main() => runApp(MyApp()); 
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -46,7 +51,18 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
 
+
+  void listener() async {
+    //"/storage/emulated/0/Pictures/Screenshots"
+    Directory externalDir = await getExternalStorageDirectory();
+    var watcher = DirectoryWatcher(p.absolute(externalDir.path + "/Pictures/Screenshots"));
+    watcher.events.listen((event) {
+      print(event);
+    });
+  }
+
   void _incrementCounter() {
+    listener();
     setState(() {
       // This call to setState tells the Flutter framework that something has
       // changed in this State, which causes it to rerun the build method below
