@@ -32,54 +32,64 @@ async function acquireCropBounds(imgName: string) {
 };
 
 export const debug = functions.https.onRequest(async (request, response) => {
-    let visionResult = await getVision(request.body["imgName"]);
+    const visionResult = await getVision(request.body["imgName"]);
     response.send(JSON.stringify({
         'vision': visionResult,
-        'cropBounds': acquireCropBounds(visionResult)
+        'cropBounds': cropBoundsFromVision(visionResult)
     }));
-    
 });
 
+function blockHeight(block: any): number {
+    return block["boundingPoly"]["vertices"][2]["y"] - block["boundingPoly"]["vertices"][0]["y"];
+}
+
 function cropBoundsFromVision(body: any): string {
-    const textAnnotations: Array<Object> = body[0]["textAnnotations"];
+    const textAnnotations: Array<any> = body[0]["textAnnotations"];
 
-    // Look for 
-    textAnnotations.forEach((block, i) => {
-
-    });
-
-    console.log(textAnnotations);
-    let bottomBoundary: number = 0;
-    let topBoundary: number = 0;
+    let likesBlockIndex: number = 0;
     let username: string = "";
-    textAnnotations.forEach((block, i) => {
-        if ("description" in block) {
-            if (!isNaN(block["description"])) {
-                const nextBlock: Object = textAnnotations[i + 1];
-                if ("description" in nextBlock) {
-                    if (nextBlock["description"] === "likes") {
-                        //we're good fam
-                        bottomBoundary = nextBlock["boundingPoly"]["vertices"][2]["y"];
-                        const usernameBlock: Object = textAnnotations[i + 2];
-                        if ("description" in usernameBlock)
-                            username = usernameBlock["description"];
-                    }
-                }
+
+    // Look for an Instagram post likes row
+    for(let i: number = 1; i < textAnnotations.length; i++) {
+        if(
+            (
+                /^(like|view)s?$/.test(textAnnotations[i]["description"]) 
+                && /^[0-9,]+$/.test(textAnnotations[i - 1]["description"])
+            )
+            || (
+                textAnnotations[i]["description"] === "Liked"
+                && i != textAnnotations.length - 1 
+                && textAnnotations[i + 1]["description"] === "by"
+            )
+         ) {
+            console.log("yeet");
+            likesBlockIndex = i;
+            // Advance to description
+            while(++i < textAnnotations.length && textAnnotations[i]["boundingPoly"]["vertices"][0]["y"] < textAnnotations[i - 1]["boundingPoly"]["vertices"][1]["y"]);
+            username = textAnnotations[i]["description"];
+            break;
+        }
+    }
+
+    // Return crop bounds for instagram post
+    if(likesBlockIndex) {
+        let em: number = blockHeight(textAnnotations[likesBlockIndex]); // 1 em ~= height of likes block
+        let bottomCrop: number = textAnnotations[likesBlockIndex]["boundingPoly"]["vertices"][0]["y"] - 3 * em; // 3 em above likes block
+        let topCrop: number = 0;
+        for(let i: number = likesBlockIndex; i > 0; i--) { // go back to top block
+            if(textAnnotations[i]["description"] === username // find username
+                || (textAnnotations[i]["description"] === "Instagram" && blockHeight(textAnnotations[i]) > 1.1 * em)) { // or Instagram logo
+                topCrop = textAnnotations[i]["boundingPoly"]["vertices"][2]["y"] + 1.05 * em; // 1.05 em below bottom
             }
         }
-    });
+        return JSON.stringify({ "bottomBoundary": Math.round(bottomCrop), "topBoundary": Math.round(topCrop) });
+    }
 
-    let alreadyFound: boolean = false;
-    textAnnotations.forEach((block, i) => {
-        if ("description" in block) {
-            if (!alreadyFound && block["description"] === username) {
-                topBoundary = block["boundingPoly"]["vertices"][0]["y"];
-                alreadyFound = true;
-            }
-        }
-    });
+    // Look for Twitter
 
-    return JSON.stringify({ "bottomBoundary": bottomBoundary, "topBoundary": topBoundary });
+    // Return crop bounds for tweet
+
+    return JSON.stringify({ "bottomBoundary": 200, "topBoundary": 0 });
 }
 
 export const createUserRecord = functions.auth
