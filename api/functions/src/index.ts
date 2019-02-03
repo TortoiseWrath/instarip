@@ -7,28 +7,31 @@ import * as path from 'path';
 import * as admin from 'firebase-admin';
 import * as os from 'os';
 
-const {Storage} = require('@google-cloud/storage');
+const { Storage } = require('@google-cloud/storage');
 const gcs = new Storage('instarip-1c336');
 const spawn = require('child-process-promise').spawn;
 
 admin.initializeApp();
 const db = admin.firestore();
 
+function cropBoundsFromVision(body: any): string {
+    return body;
+}
 
 export const acquireCropBounds = functions.https.onRequest((request, response) => {
     let bearerToken: string = fs.readFileSync(path.join(__dirname, "../src/" + BEARER_TOKEN_LOCATION)).toString().trim();
 
     let visionRequest: string = JSON.stringify({
-        "requests":[
+        "requests": [
             {
-                "image":{
-                    "source":{
-                        "imageUri": "gs://instarip-1c336.appspot.com/6.png"
+                "image": {
+                    "source": {
+                        "imageUri": `gs://instarip-1c336.appspot.com/${request.body["imgName"]}`
                     }
                 },
-                "features":[
+                "features": [
                     {
-                        "type":"DOCUMENT_TEXT_DETECTION"
+                        "type": "DOCUMENT_TEXT_DETECTION"
                     }
                 ]
             }
@@ -46,8 +49,8 @@ export const acquireCropBounds = functions.https.onRequest((request, response) =
         },
         url: "https://vision.googleapis.com/v1/images:annotate",
         body: visionRequest
-    }, function(error, res, body) {
-        if(error) {
+    }, function (error, res, body) {
+        if (error) {
             response.send(error);
         }
         else {
@@ -56,15 +59,11 @@ export const acquireCropBounds = functions.https.onRequest((request, response) =
     });
 });
 
-function cropBoundsFromVision(body: any): string {
-    return body;
-}
-
 export const createUserRecord = functions.auth
     .user()
     .onCreate((user, context) => {
         const userRef = db.doc(`users/${user.uid}`);
-        
+
         return userRef.set({
             email: user.email,
             createdAt: context.timestamp,
@@ -76,7 +75,7 @@ export const fileAdded = functions.storage
     .bucket('instarip-1c336.appspot.com')
     .object()
     .onFinalize((object, context) => {
-        if (object.name && object.name.startsWith('cropped_')){
+        if (object.name && object.name.startsWith('cropped_')) {
             return "all good";
         }
         if (context.auth) {
@@ -93,9 +92,9 @@ export const fileAdded = functions.storage
                 createdAt: context.timestamp
             }).catch();
         }
-        
-        const fileBucket = object.bucket; 
-        const filePath = object.name; 
+
+        const fileBucket = object.bucket;
+        const filePath = object.name;
         const contentType = object.contentType;
 
         var fileName = '';
@@ -106,25 +105,25 @@ export const fileAdded = functions.storage
             const bucket = gcs.bucket(fileBucket);
             const tempFilePath = path.join(os.tmpdir(), fileName);
             const metadata = {
-            contentType: contentType,
+                contentType: contentType,
             };
             return bucket.file(filePath).download({
-            destination: tempFilePath,
+                destination: tempFilePath,
             }).then(() => {
-            console.log('Image downloaded locally to', tempFilePath);
-            // Generate a crop using ImageMagick.
-            return spawn('convert', [tempFilePath, '-crop', '200x200+0+0>', tempFilePath]);
+                console.log('Image downloaded locally to', tempFilePath);
+                // Generate a crop using ImageMagick.
+                return spawn('convert', [tempFilePath, '-crop', '200x200+0+0>', tempFilePath]);
             }).then(() => {
-            console.log('Crop created at', tempFilePath);
-            // We add a 'cropped_' prefix to thumbnails file name. That's where we'll upload the crop.
-            const thumbFileName = `cropped_${fileName}`;
-            const thumbFilePath = path.join(path.dirname(filePath), thumbFileName);
-            // Uploading the cropped photo.
-            return bucket.upload(tempFilePath, {
-                destination: thumbFilePath,
-                metadata: metadata,
-            });
-            // Once the crop has been uploaded delete the local file to free up disk space.
+                console.log('Crop created at', tempFilePath);
+                // We add a 'cropped_' prefix to thumbnails file name. That's where we'll upload the crop.
+                const thumbFileName = `cropped_${fileName}`;
+                const thumbFilePath = path.join(path.dirname(filePath), thumbFileName);
+                // Uploading the cropped photo.
+                return bucket.upload(tempFilePath, {
+                    destination: thumbFilePath,
+                    metadata: metadata,
+                });
+                // Once the crop has been uploaded delete the local file to free up disk space.
             }).then(() => fs.unlinkSync(tempFilePath));
         }
         return "it's chill";
