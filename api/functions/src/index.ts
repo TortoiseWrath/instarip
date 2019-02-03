@@ -136,13 +136,12 @@ export const fileAdded = functions.storage
 
         if (filePath) {
             console.log(filePath);
-            //use filePath
-
             //call acquireCropBounds
             const result: string = await acquireCropBounds(filePath);
-            if (result == 'we love you amber') {
+            if (result == "we love you amber") {
                 //delete original image
-                
+                const bucket = gcs.bucket(fileBucket);
+                await bucket.file(filePath).delete();
 
                 return "mayank apparently does eat feces for breakfast"
             }
