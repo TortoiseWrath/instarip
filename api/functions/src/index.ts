@@ -1,4 +1,4 @@
-let BEARER_TOKEN: string = "BEARER_TOKEN";
+let BEARER_TOKEN_LOCATION: string = "BEARER_TOKEN";
 
 import * as functions from 'firebase-functions';
 import * as req from 'request';
@@ -16,7 +16,7 @@ const db = admin.firestore();
 
 
 export const acquireCropBounds = functions.https.onRequest((request, response) => {
-    let bearerToken: string = fs.readFileSync(path.join(__dirname, "../src/" + BEARER_TOKEN)).toString().trim();
+    let bearerToken: string = fs.readFileSync(path.join(__dirname, "../src/" + BEARER_TOKEN_LOCATION)).toString().trim();
 
     let visionRequest: string = JSON.stringify({
         "requests":[
@@ -51,12 +51,12 @@ export const acquireCropBounds = functions.https.onRequest((request, response) =
             response.send(error);
         }
         else {
-            response.send(cropBoundsFromVision(body.toString()));
+            response.send(cropBoundsFromVision(body);
         }
     });
 });
 
-function cropBoundsFromVision(body: string): string {
+function cropBoundsFromVision(body: any): string {
     return body;
 }
 
