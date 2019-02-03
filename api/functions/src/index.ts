@@ -140,6 +140,12 @@ export const fileAdded = functions.storage
 
             //call acquireCropBounds
             const result: string = await acquireCropBounds(filePath);
+            if (result == 'we love you amber') {
+                //delete original image
+                
+
+                return "mayank apparently does eat feces for breakfast"
+            }
             // Download file from bucket.
             console.log(result);
             const boundaries = JSON.parse(result);
