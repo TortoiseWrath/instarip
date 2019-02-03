@@ -1,5 +1,5 @@
 const SERVICE_ACCOUNT_PATH: string = "service-account-credentials.json";
-const PROJECT_NAME: string = "instarip-1c336.appspot.com";
+const PROJECT_NAME: string = "instarip-1c336";
 
 import * as functions from 'firebase-functions';
 import * as fs from 'fs';
@@ -15,20 +15,39 @@ const spawn = require('child-process-promise').spawn;
 admin.initializeApp();
 const db = admin.firestore();
 
-async function acquireCropBounds(imgName: string) {
+async function getVision(imgName: string) {
     const client = new vision.ImageAnnotatorClient({
-        projectId: 'instarip-lc336',
+        projectId: PROJECT_NAME,
         keyFilename: SERVICE_ACCOUNT_PATH
     });
 
-    var results = await client.documentTextDetection(
-        `gs://${PROJECT_NAME}/${imgName}`
+    const results = await client.documentTextDetection(
+        `gs://${PROJECT_NAME}.appspot.com/${imgName}`
     );
-    return cropBoundsFromVision(results);
+    return results;
+}
+
+async function acquireCropBounds(imgName: string) {
+    return cropBoundsFromVision(await getVision(imgName));
 };
+
+export const debug = functions.https.onRequest(async (request, response) => {
+    let visionResult = await getVision(request.body["imgName"]);
+    response.send(JSON.stringify({
+        'vision': visionResult,
+        'cropBounds': acquireCropBounds(visionResult)
+    }));
+    
+});
 
 function cropBoundsFromVision(body: any): string {
     const textAnnotations: Array<Object> = body[0]["textAnnotations"];
+
+    // Look for 
+    textAnnotations.forEach((block, i) => {
+
+    });
+
     console.log(textAnnotations);
     let bottomBoundary: number = 0;
     let topBoundary: number = 0;
@@ -38,7 +57,7 @@ function cropBoundsFromVision(body: any): string {
             if (!isNaN(block["description"])) {
                 const nextBlock: Object = textAnnotations[i + 1];
                 if ("description" in nextBlock) {
-                    if (nextBlock["description"] == "likes") {
+                    if (nextBlock["description"] === "likes") {
                         //we're good fam
                         bottomBoundary = nextBlock["boundingPoly"]["vertices"][2]["y"];
                         const usernameBlock: Object = textAnnotations[i + 2];
@@ -53,7 +72,7 @@ function cropBoundsFromVision(body: any): string {
     let alreadyFound: boolean = false;
     textAnnotations.forEach((block, i) => {
         if ("description" in block) {
-            if (!alreadyFound && block["description"] == username) {
+            if (!alreadyFound && block["description"] === username) {
                 topBoundary = block["boundingPoly"]["vertices"][0]["y"];
                 alreadyFound = true;
             }
@@ -76,7 +95,7 @@ export const createUserRecord = functions.auth
     });
 
 export const fileAdded = functions.storage
-    .bucket(PROJECT_NAME)
+    .bucket(`${PROJECT_NAME}.appspot.com`)
     .object()
     .onFinalize(async (object, context) => {
         if (object.name && path.basename(object.name).startsWith('cropped_')) {
@@ -91,8 +110,8 @@ export const fileAdded = functions.storage
         }
         else {
             if (object.name) {
-                var objectPathArr = object.name.split("/");
-                var objectName = objectPathArr[objectPathArr.length - 1];
+                const objectPathArr: string[] = object.name.split("/");
+                const objectName: string = objectPathArr[objectPathArr.length - 1];
                 const photosRef = db.doc(`users/userOne/folders/Uncategorized/photos/${objectName}`);
                 photosRef.set({
                     name: object.name,
@@ -110,13 +129,13 @@ export const fileAdded = functions.storage
             //use filePath
 
             //call acquireCropBounds
-            var result = await acquireCropBounds(filePath);
+            const result: string = await acquireCropBounds(filePath);
             // Download file from bucket.
             console.log(result);
-            var boundaries = JSON.parse(result);
-            var height: number = boundaries["bottomBoundary"] - boundaries["topBoundary"];
-            var photoNameData = filePath.split("-");
-            var width: number = parseInt(photoNameData[photoNameData.length - 1].split("x")[0]);
+            const boundaries = JSON.parse(result);
+            const height: number = boundaries["bottomBoundary"] - boundaries["topBoundary"];
+            const photoNameData: string[] = filePath.split("-");
+            const width: number = parseInt(photoNameData[photoNameData.length - 1].split("x")[0]);
             console.log(boundaries);
             const bucket = gcs.bucket(fileBucket);
             const tempFilePath = path.join(os.tmpdir(), path.basename(filePath));
