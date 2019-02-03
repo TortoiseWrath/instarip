@@ -50,7 +50,8 @@ function cropBoundsFromVision(body: any): string {
     let username: string = "";
 
     // Look for an Instagram post likes row
-    for(let i: number = 1; i < textAnnotations.length; i++) { // linter gets mad if I do let i in textAnnotations
+    let i: number = 1;
+    for(i = 1; i < textAnnotations.length; i++) { // linter gets mad if I do let i in textAnnotations
         if(
             (
                 /^(like|view)s?$/.test(textAnnotations[i]["description"]) 
@@ -67,6 +68,7 @@ function cropBoundsFromVision(body: any): string {
             // Advance to description
             while(++i < textAnnotations.length && textAnnotations[i]["boundingPoly"]["vertices"][0]["y"] < textAnnotations[i - 1]["boundingPoly"]["vertices"][2]["y"]);
             username = textAnnotations[i]["description"];
+            console.log("username detected: " + username);
             break;
         }
     }
@@ -76,10 +78,13 @@ function cropBoundsFromVision(body: any): string {
         let em: number = blockHeight(textAnnotations[likesBlockIndex]); // 1 em ~= height of likes block
         let bottomCrop: number = textAnnotations[likesBlockIndex]["boundingPoly"]["vertices"][0]["y"] - 3 * em; // 3 em above likes block
         let topCrop: number = 0;
-        for(let i: number = likesBlockIndex; i > 0; i--) { // go back to top block
+        for(i = likesBlockIndex; i > 0; i--) { // go back to top block
+            console.log("comparing username to: " + textAnnotations[i]["description"]);
             if(textAnnotations[i]["description"] === username // find username
                 || (textAnnotations[i]["description"] === "Instagram" && blockHeight(textAnnotations[i]) > 1.1 * em)) { // or Instagram logo
                 topCrop = textAnnotations[i]["boundingPoly"]["vertices"][2]["y"] + 1.05 * em; // 1.05 em below bottom
+                console.log("found top crop " + topCrop.toString());
+                break;
             }
         }
         return JSON.stringify({ "bottomBoundary": Math.round(bottomCrop), "topBoundary": Math.round(topCrop) });
@@ -94,7 +99,7 @@ function cropBoundsFromVision(body: any): string {
     let replied: boolean = false;
     
     // Look for replied line
-    let i: number = atSignIndex;
+    i = atSignIndex;
     // Go back to start of line
     while(--i && textAnnotations[i]["boundingPoly"]["vertices"][2]["y"] > textAnnotations[i + 1]["boundingPoly"]["vertices"][0]["y"]);
     if(textAnnotations[i]["description"] === "replied") {
@@ -204,8 +209,7 @@ export const fileAdded = functions.storage
             const result: string = await acquireCropBounds(filePath);
             if (result == "we love you amber") {
                 //delete original image
-                const bucket = gcs.bucket(fileBucket);
-                await bucket.file(filePath).delete();
+                await gcs.bucket(fileBucket).file(filePath).delete();
 
                 return "mayank apparently does eat feces for breakfast"
             }
