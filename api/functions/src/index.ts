@@ -43,9 +43,7 @@ function blockHeight(block: any): number {
     return block["boundingPoly"]["vertices"][2]["y"] - block["boundingPoly"]["vertices"][0]["y"];
 }
 
-function cropBoundsFromVision(body: any): string {
-    const textAnnotations: Array<any> = body[0]["textAnnotations"];
-
+function instagramCropBounds(textAnnotations: Array<any>): string {
     let likesBlockIndex: number = 0;
     let username: string = "";
 
@@ -58,7 +56,7 @@ function cropBoundsFromVision(body: any): string {
             )
             || (
                 textAnnotations[i]["description"] === "Liked"
-                && i != textAnnotations.length - 1 
+                && i !== textAnnotations.length - 1 
                 && textAnnotations[i + 1]["description"] === "by"
             )
          ) {
@@ -73,21 +71,25 @@ function cropBoundsFromVision(body: any): string {
 
     // Return crop bounds for instagram post
     if(likesBlockIndex) {
-        let em: number = blockHeight(textAnnotations[likesBlockIndex]); // 1 em ~= height of likes block
+        const em: number = blockHeight(textAnnotations[likesBlockIndex]); // 1 em ~= height of likes block
         let bottomCrop: number = textAnnotations[likesBlockIndex]["boundingPoly"]["vertices"][0]["y"] - 3 * em; // 3 em above likes block
         let topCrop: number = 0;
         for(let i: number = likesBlockIndex; i > 0; i--) { // go back to top block
             if(textAnnotations[i]["description"] === username // find username
                 || (textAnnotations[i]["description"] === "Instagram" && blockHeight(textAnnotations[i]) > 1.1 * em)) { // or Instagram logo
                 topCrop = textAnnotations[i]["boundingPoly"]["vertices"][2]["y"] + 1.05 * em; // 1.05 em below bottom
+                break;
             }
         }
         return JSON.stringify({ "bottomBoundary": Math.round(bottomCrop), "topBoundary": Math.round(topCrop) });
     }
 
-    let atSignIndex: number = scanTweet(textAnnotations, 1);
+    return "god damn it all";
+}
 
-    if(!atSignIndex) return "we love you amber"; // no match
+function twitterCropBounds(textAnnotations: Array<any>): string {
+    const atSignIndex: number = scanTweet(textAnnotations, 1);
+    if(!atSignIndex) return "fuck you twitter"; // no match
 
     let topBound: number = 0;
     let bottomBound: number = 0;
@@ -116,17 +118,28 @@ function cropBoundsFromVision(body: any): string {
     bottomBound = textAnnotations[--i]["boundingPoly"]["vertices"][2]["y"];
 
     return JSON.stringify({ "bottomBoundary": Math.round(bottomBound), "topBoundary": Math.round(topBound) });
+}
 
+function cropBoundsFromVision(body: any): string {
+    const textAnnotations: Array<any> = body[0]["textAnnotations"];
+
+    const instaBounds: string = instagramCropBounds(textAnnotations);
+    if(instaBounds !== "god damn it all") return instaBounds;
+
+    const twitterBounds: string = twitterCropBounds(textAnnotations);
+    if(twitterBounds !== "fuck you twitter") return twitterBounds;
+
+    return("we love you amber");
 }
 
 function scanTweet(textAnnotations: Array<any>, start: number): number {
     // Look for tweeter line
     for(let i: number = start; i < textAnnotations.length; i++) { // linter gets mad if I do let i in textAnnotations
         if(textAnnotations[i]["description"] === "@") {
-            let potentialAtSignIndex: number = i;
+            const potentialAtSignIndex: number = i;
             // Go to end of line
             while(++i < textAnnotations.length && textAnnotations[i]["boundingPoly"]["vertices"][0]["y"] < textAnnotations[i - 1]["boundingPoly"]["vertices"][2]["y"]);
-            let lastElementOfTimestamp: RegExp = /^([0-9]{1,3}[smdh]?|[A-Za-z]{3})$/;
+            const lastElementOfTimestamp: RegExp = /^([0-9]{1,3}[smdh]?|[A-Za-z]{3})$/;
             if(!lastElementOfTimestamp.test(textAnnotations[--i]["description"])) {
                 i--; // advance back up to 2 spaces to find last element of timestamp
             }
