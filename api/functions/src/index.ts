@@ -65,7 +65,6 @@ function instagramCropBounds(textAnnotations: Array<any>): string {
             // Advance to description
             while(++i < textAnnotations.length && textAnnotations[i]["boundingPoly"]["vertices"][0]["y"] < textAnnotations[i - 1]["boundingPoly"]["vertices"][2]["y"]);
             username = textAnnotations[i]["description"];
-            break;
         }
     }
 

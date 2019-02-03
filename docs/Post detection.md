@@ -61,6 +61,7 @@ The tweeter line contains:
 * show button (usually recognized as v)
 
 Timestamp formats:
+* 59s
 * 49m
 * 4h
 * 2d
