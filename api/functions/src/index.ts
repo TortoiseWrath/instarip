@@ -2,7 +2,6 @@ const SERVICE_ACCOUNT_PATH: string = "service-account-credentials.json";
 const PROJECT_NAME: string = "instarip-1c336.appspot.com";
 
 import * as functions from 'firebase-functions';
-// import * as req from 'request';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as admin from 'firebase-admin';
