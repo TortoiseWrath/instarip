@@ -1,4 +1,4 @@
-package com.example.instarip;
+package com.qlinkapps.instarip;
 
 import android.os.Bundle;
 import io.flutter.app.FlutterActivity;

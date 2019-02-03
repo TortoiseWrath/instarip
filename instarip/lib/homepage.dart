@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:instarip/gallery.dart';
+import 'package:instarip/authentication.dart';
 
 class GridList extends StatefulWidget {
   const GridList({Key key}) : super(key: key);
@@ -27,6 +28,9 @@ class GridListState extends State<GridList> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('InstaRip'),
+        actions: <Widget>[
+          IconButton(icon: Icon(Icons.exit_to_app), onPressed: authService.signOut)
+        ],
       ),
       body: Column(
         children: <Widget>[
