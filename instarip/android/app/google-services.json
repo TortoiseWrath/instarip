@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "897099191567",
+    "firebase_url": "https://instarip-1c336.firebaseio.com",
+    "project_id": "instarip-1c336",
+    "storage_bucket": "instarip-1c336.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:897099191567:android:819b7ebe4fa7a6ac",
+        "android_client_info": {
+          "package_name": "com.qlinkapps.instarip"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "897099191567-9db8g0hlaa7u1du8v8get1sjdr1p17bl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.qlinkapps.instarip",
+            "certificate_hash": "be4126ba38dfc6df8042c8931f0b3f8d9a8ccba5"
+          }
+        },
+        {
+          "client_id": "897099191567-3l8k80i8jurpsg6o9e4io40gf6htm6cu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX9_oFztslm0O479dIvYZqNd09Z0nz10Q"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "897099191567-3l8k80i8jurpsg6o9e4io40gf6htm6cu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
