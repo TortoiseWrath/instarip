@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:watcher/watcher.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:image/image.dart' as Img;
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:background_fetch/background_fetch.dart';
 
 int count = 1;
@@ -99,8 +99,26 @@ class _MyHomePageState extends State<MyHomePage> {
     if (!mounted) return;
   }
 
+
+void uploadImage(String fileName, File uploadFile )
+{
+//   final StorageReference firebaseStorageRef =
+//                   FirebaseStorage.instance.ref().child(fileName);
+//               final StorageUploadTask task =
+//                   firebaseStorageRef.putFile(uploadFile);
+}
+
+
+
   void readImage(String filePath) {
-    Img.Image image = Img.decodeImage(new File(filePath).readAsBytesSync());
+
+    File imageFile =  new File(filePath);
+
+    Img.Image image = Img.decodeImage(imageFile.readAsBytesSync());
+    String fileName = p.basename(filePath) + "-"+ image.width.toString() + "x" + image.height.toString();
+
+    uploadImage(fileName, imageFile);
+
     writeCounter(count);
     print(image);
   }

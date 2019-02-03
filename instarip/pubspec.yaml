@@ -15,7 +15,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  
+
+  firebase_storage: ^2.0.0
   watcher: ^0.9.7+10
   path_provider: ^0.5.0
   background_fetch: '^0.1.0'
