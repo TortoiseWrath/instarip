@@ -115,7 +115,18 @@ function twitterCropBounds(textAnnotations: Array<any>): string {
         i = scanTweet(textAnnotations, i);
     }
 
-    bottomBound = textAnnotations[--i]["boundingPoly"]["vertices"][2]["y"];
+    const em: number = blockHeight(textAnnotations[i]);
+
+    // Go to start of line
+    while(--i && textAnnotations[i]["boundingPoly"]["vertices"][2]["y"] > textAnnotations[i + 1]["boundingPoly"]["vertices"][0]["y"]);
+
+    // Look for replied/retweeted line on subsequent tweet
+    if(/^re/.test(textAnnotations[--i]["description"])) {
+        // Go back to start of line
+        while(--i && textAnnotations[i]["boundingPoly"]["vertices"][2]["y"] > textAnnotations[i + 1]["boundingPoly"]["vertices"][0]["y"]);
+    }
+
+    bottomBound = textAnnotations[i]["boundingPoly"]["vertices"][0]["y"] - em;
 
     return JSON.stringify({ "bottomBoundary": Math.round(bottomBound), "topBoundary": Math.round(topBound) });
 }
