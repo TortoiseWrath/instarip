@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:instarip/gallery.dart';
@@ -43,23 +42,22 @@ class GridListState extends State<GridList> {
                   top: false,
                   bottom: false,
                   child: FutureBuilder(
-                    future: _folders,
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        print(snapshot.data);
-                        List<GridPhotoItem> grid = List.from(snapshot.data.map((folder) => GridPhotoItem(folder: folder)));
-                        return GridView.count(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 4.0,
-                            crossAxisSpacing: 4.0,
-                            padding: const EdgeInsets.all(4.0),
-                            children: grid
-                        );
-                      } else {
-                        return Center(child: CircularProgressIndicator());
-                      }
-                    }
-                  )))
+                      future: _folders,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          print(snapshot.data);
+                          List<GridPhotoItem> grid = List.from(snapshot.data
+                              .map((folder) => GridPhotoItem(folder: folder)));
+                          return GridView.count(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 4.0,
+                              crossAxisSpacing: 4.0,
+                              padding: const EdgeInsets.all(4.0),
+                              children: grid);
+                        } else {
+                          return Center(child: CircularProgressIndicator());
+                        }
+                      })))
         ]));
   }
 }
@@ -105,7 +103,8 @@ class GridPhotoItemState extends State<GridPhotoItem> {
           Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => GalleryPage(title: 'InstaRip', folder: this.widget.folder)));
+                  builder: (context) => GalleryPage(
+                      title: 'InstaRip', folder: this.widget.folder)));
         },
         child: Hero(
             key: Key(widget.folder.name),
