@@ -50,7 +50,7 @@ function cropBoundsFromVision(body: any): string {
     let username: string = "";
 
     // Look for an Instagram post likes row
-    for(let i: number = 1; i < textAnnotations.length; i++) {
+    for(let i: number = 1; i < textAnnotations.length; i++) { // linter gets mad if I do let i in textAnnotations
         if(
             (
                 /^(like|view)s?$/.test(textAnnotations[i]["description"]) 
@@ -65,7 +65,7 @@ function cropBoundsFromVision(body: any): string {
             console.log("yeet");
             likesBlockIndex = i;
             // Advance to description
-            while(++i < textAnnotations.length && textAnnotations[i]["boundingPoly"]["vertices"][0]["y"] < textAnnotations[i - 1]["boundingPoly"]["vertices"][1]["y"]);
+            while(++i < textAnnotations.length && textAnnotations[i]["boundingPoly"]["vertices"][0]["y"] < textAnnotations[i - 1]["boundingPoly"]["vertices"][2]["y"]);
             username = textAnnotations[i]["description"];
             break;
         }
@@ -85,11 +85,75 @@ function cropBoundsFromVision(body: any): string {
         return JSON.stringify({ "bottomBoundary": Math.round(bottomCrop), "topBoundary": Math.round(topCrop) });
     }
 
-    // Look for Twitter
+    let atSignIndex: number = scanTweet(textAnnotations, 1);
 
-    // Return crop bounds for tweet
+    if(!atSignIndex) return "we love you amber"; // no match
 
-    return JSON.stringify({ "bottomBoundary": 200, "topBoundary": 0 });
+    let topBound: number = 0;
+    let bottomBound: number = 0;
+    let replied: boolean = false;
+    
+    // Look for replied line
+    let i: number = atSignIndex;
+    // Go back to start of line
+    while(--i && textAnnotations[i]["boundingPoly"]["vertices"][2]["y"] > textAnnotations[i + 1]["boundingPoly"]["vertices"][0]["y"]);
+    if(textAnnotations[i]["description"] === "replied") {
+        replied = true;
+        topBound = textAnnotations[i]["boundingPoly"]["vertices"][0]["y"];
+        i++;
+    }
+    else {
+        topBound = textAnnotations[++i]["boundingPoly"]["vertices"][0]["y"];
+    }
+    // Go to end of line
+    while(++i < textAnnotations.length && textAnnotations[i]["boundingPoly"]["vertices"][0]["y"] < textAnnotations[i - 1]["boundingPoly"]["vertices"][2]["y"]);
+
+    // Advance 1 or 2 tweets
+    for(let j: number = 0; j < (replied ? 3 : 2); j++) {
+        i = scanTweet(textAnnotations, i);
+    }
+
+    bottomBound = textAnnotations[--i]["boundingPoly"]["vertices"][2]["y"];
+
+    return JSON.stringify({ "bottomBoundary": Math.round(bottomBound), "topBoundary": Math.round(topBound) });
+
+}
+
+function scanTweet(textAnnotations: Array<any>, start: number): number {
+    // Look for tweeter line
+    for(let i: number = start; i < textAnnotations.length; i++) { // linter gets mad if I do let i in textAnnotations
+        if(textAnnotations[i]["description"] === "@") {
+            let potentialAtSignIndex: number = i;
+            // Go to end of line
+            while(++i < textAnnotations.length && textAnnotations[i]["boundingPoly"]["vertices"][0]["y"] < textAnnotations[i - 1]["boundingPoly"]["vertices"][2]["y"]);
+            let lastElementOfTimestamp: RegExp = /^([0-9]{1,3}[smdh]?|[A-Za-z]{3})$/;
+            if(!lastElementOfTimestamp.test(textAnnotations[--i]["description"])) {
+                i--; // advance back up to 2 spaces to find last element of timestamp
+            }
+            if(lastElementOfTimestamp.test(textAnnotations[i]["description"])) {
+                if(/^[0-9]{2}$/.test(textAnnotations[i]["description"])) { // 19 Jan 18
+                    if(/^[A-Za-z]{3}$/.test(textAnnotations[--i]["description"])) {
+                        if(/^[0-9]{1,2}$/.test(textAnnotations[--i]["description"])) {
+                            // we got a tweet bois
+                            return potentialAtSignIndex;
+                        }
+                    }
+                }
+                else if(/^[A-Za-z]{3}$/.test(textAnnotations[i]["description"])) { // 19 Jan
+                    if(/^[0-9]{1,2}$/.test(textAnnotations[--i]["description"])) {
+                        // oh look a tweet
+                        return potentialAtSignIndex;
+                    }
+                }
+                else { // 29s
+                    // holy shit a tweet what now
+                    return potentialAtSignIndex;
+                }
+                continue; // not a tweet
+            }
+        }
+    }
+    return 0; // no tweet
 }
 
 export const createUserRecord = functions.auth

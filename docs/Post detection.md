@@ -42,3 +42,31 @@ We go up from likes row until ???
 # Twitter posts
 
 Twitter posts: We want the tweet and its author and retweet/like counts.
+
+## Format for tweets with replies
+* *name* replied
+* tweeter line
+* tweet
+* stat line
+
+## Tweeter line
+
+The tweeter line contains:
+* profile pic (useless)
+* name (useless)
+* verification mark? (useless)
+* @username
+* · (sometimes recognized as :)
+* timestamp
+* show button (usually recognized as v)
+
+Timestamp formats:
+* 49m
+* 4h
+* 2d
+* 02 Jan
+* 09 Dec 18
+
+## Stat line
+
+GCP seems to return some nonsense. Match against the next tweet instead.
