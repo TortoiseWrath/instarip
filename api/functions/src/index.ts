@@ -71,7 +71,7 @@ function instagramCropBounds(textAnnotations: Array<any>): string {
     // Return crop bounds for instagram post
     if(likesBlockIndex) {
         const em: number = blockHeight(textAnnotations[likesBlockIndex]); // 1 em ~= height of likes block
-        let bottomCrop: number = textAnnotations[likesBlockIndex]["boundingPoly"]["vertices"][0]["y"] - 3 * em; // 3 em above likes block
+        const bottomCrop: number = textAnnotations[likesBlockIndex]["boundingPoly"]["vertices"][0]["y"] - 3 * em; // 3 em above likes block
         let topCrop: number = 0;
         for(let i: number = likesBlockIndex; i > 0; i--) { // go back to top block
             if(textAnnotations[i]["description"] === username // find username
@@ -220,8 +220,8 @@ export const fileAdded = functions.storage
         }
         console.log("object name is " + object.name);
         if (object.name) {
-            let username: string = object.name.split("/")[0];
-            let folder: string = object.name.split("/")[1];
+            const username: string = object.name.split("/")[0];
+            const folder: string = object.name.split("/")[1];
             console.log(username);
             console.log("folder is " + folder);
             const photosRef = db.doc(`users/${username}/folders/${folder}/photos/${path.basename(object.name)}`);
@@ -244,7 +244,7 @@ export const fileAdded = functions.storage
             if (filePath.split("/")[0] === "safe") {
                 return "just return";
             }
-            if (result == "we love you amber") {
+            if (result === "we love you amber") {
                 //delete original image
                 await gcs.bucket(fileBucket).file(filePath).delete();
 
