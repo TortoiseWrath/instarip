@@ -44,8 +44,9 @@ We go up from likes row until ???
 Twitter posts: We want the tweet and its author and retweet/like counts.
 
 ## Format for tweets with replies
-* *name* replied
+* *name* replied (optional)
 * tweeter line
+* Replying to @... (optional)
 * tweet
 * stat line
 

@@ -90,6 +90,8 @@ function twitterCropBounds(textAnnotations: Array<any>): string {
     const atSignIndex: number = scanTweet(textAnnotations, 1);
     if(!atSignIndex) return "fuck you twitter"; // no match
 
+    console.log(JSON.stringify(textAnnotations[atSignIndex]));
+
     let topBound: number = 0;
     let bottomBound: number = 0;
     let replied: boolean = false;
@@ -98,32 +100,48 @@ function twitterCropBounds(textAnnotations: Array<any>): string {
     let i: number = atSignIndex;
     // Go back to start of line
     while(--i && textAnnotations[i]["boundingPoly"]["vertices"][2]["y"] > textAnnotations[i + 1]["boundingPoly"]["vertices"][0]["y"]);
+    console.log(JSON.stringify(textAnnotations[i]));
     if(textAnnotations[i]["description"] === "replied") {
         replied = true;
-        topBound = textAnnotations[i]["boundingPoly"]["vertices"][0]["y"];
-        i++;
+        topBound = textAnnotations[i++]["boundingPoly"]["vertices"][0]["y"];
     }
     else {
         topBound = textAnnotations[++i]["boundingPoly"]["vertices"][0]["y"];
     }
+    console.log(JSON.stringify(textAnnotations[i]));
     // Go to end of line
     while(++i < textAnnotations.length && textAnnotations[i]["boundingPoly"]["vertices"][0]["y"] < textAnnotations[i - 1]["boundingPoly"]["vertices"][2]["y"]);
+    for(let j: number = 0; j < 6; j++) { // Check next five words for "Replying"
+        if(i + j < textAnnotations.length && textAnnotations[i + j]["description"] === "Replying") {
+            replied = true;
+            break;
+        }
+    }
+    console.log(JSON.stringify(textAnnotations[i]));
+    console.log(replied);
 
     // Advance 1 or 2 tweets
-    for(let j: number = 0; j < (replied ? 3 : 2); j++) {
-        i = scanTweet(textAnnotations, i);
+    for(let j: number = 0; j < (replied ? 2 : 1); j++) {
+        i = scanTweet(textAnnotations, ++i);
+        console.log(`advanced j=${j} to ${JSON.stringify(textAnnotations[i])}`)
     }
+    console.log(JSON.stringify(textAnnotations[i]));
 
     const em: number = blockHeight(textAnnotations[i]);
 
     // Go to start of line
     while(--i && textAnnotations[i]["boundingPoly"]["vertices"][2]["y"] > textAnnotations[i + 1]["boundingPoly"]["vertices"][0]["y"]);
+    i++;
+    console.log(JSON.stringify(textAnnotations[i]));
+    
 
     // Look for replied/retweeted line on subsequent tweet
-    if(/^re/.test(textAnnotations[--i]["description"])) {
+    if(/^[Rr]e/.test(textAnnotations[--i]["description"])) {
         // Go back to start of line
         while(--i && textAnnotations[i]["boundingPoly"]["vertices"][2]["y"] > textAnnotations[i + 1]["boundingPoly"]["vertices"][0]["y"]);
     }
+    i++;
+    console.log(JSON.stringify(textAnnotations[i]));
 
     bottomBound = textAnnotations[i]["boundingPoly"]["vertices"][0]["y"] - em;
 
@@ -147,12 +165,14 @@ function scanTweet(textAnnotations: Array<any>, start: number): number {
     for(let i: number = start; i < textAnnotations.length; i++) { // linter gets mad if I do let i in textAnnotations
         if(textAnnotations[i]["description"] === "@") {
             const potentialAtSignIndex: number = i;
+            console.log(`potentialAtSignIndex: ${potentialAtSignIndex}`)
+            
             // Go to end of line
             while(++i < textAnnotations.length && textAnnotations[i]["boundingPoly"]["vertices"][0]["y"] < textAnnotations[i - 1]["boundingPoly"]["vertices"][2]["y"]);
+
             const lastElementOfTimestamp: RegExp = /^([0-9]{1,3}[smdh]?|[A-Za-z]{3})$/;
-            if(!lastElementOfTimestamp.test(textAnnotations[--i]["description"])) {
-                i--; // advance back up to 2 spaces to find last element of timestamp
-            }
+            while(--i && !lastElementOfTimestamp.test(textAnnotations[i]["description"]) && i > potentialAtSignIndex); // look for last element of timestamp on previous line
+            console.log(`now at ${JSON.stringify(textAnnotations[i])}`);
             if(lastElementOfTimestamp.test(textAnnotations[i]["description"])) {
                 if(/^[0-9]{2}$/.test(textAnnotations[i]["description"])) { // 19 Jan 18
                     if(/^[A-Za-z]{3}$/.test(textAnnotations[--i]["description"])) {
