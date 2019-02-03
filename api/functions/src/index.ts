@@ -1,58 +1,31 @@
-let BEARER_TOKEN_LOCATION: string = "BEARER_TOKEN";
+const SERVICE_ACCOUNT_PATH: string = "service-account-credentials.json";
+const PROJECT_NAME: string = "instarip-1c336.appspot.com";
 
 import * as functions from 'firebase-functions';
-import * as req from 'request';
+// import * as req from 'request';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as admin from 'firebase-admin';
 import * as os from 'os';
 
+const vision = require('@google-cloud/vision');
 const {Storage} = require('@google-cloud/storage');
-const gcs = new Storage('instarip-1c336');
+const gcs = new Storage(PROJECT_NAME);
 const spawn = require('child-process-promise').spawn;
 
 admin.initializeApp();
 const db = admin.firestore();
 
-
 export const acquireCropBounds = functions.https.onRequest((request, response) => {
-    let bearerToken: string = fs.readFileSync(path.join(__dirname, "../src/" + BEARER_TOKEN_LOCATION)).toString().trim();
-
-    let visionRequest: string = JSON.stringify({
-        "requests":[
-            {
-                "image":{
-                    "source":{
-                        "imageUri": "gs://instarip-1c336.appspot.com/6.png"
-                    }
-                },
-                "features":[
-                    {
-                        "type":"DOCUMENT_TEXT_DETECTION"
-                    }
-                ]
-            }
-        ]
+    const client = new vision.ImageAnnotatorClient({
+        projectId: 'instarip-lc336',
+        keyFilename: SERVICE_ACCOUNT_PATH
     });
 
-    req({
-        method: 'POST',
-        port: 443,
-        auth: {
-            'bearer': bearerToken
-        },
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        url: "https://vision.googleapis.com/v1/images:annotate",
-        body: visionRequest
-    }, function(error, res, body) {
-        if(error) {
-            response.send(error);
-        }
-        else {
-            response.send(cropBoundsFromVision(body));
-        }
+    client.documentTextDetection(
+        `gs://${PROJECT_NAME}/6.png` 
+    ).then((results: any) => {
+        response.send(cropBoundsFromVision(results));
     });
 });
 
@@ -73,7 +46,7 @@ export const createUserRecord = functions.auth
     });
 
 export const fileAdded = functions.storage
-    .bucket('instarip-1c336.appspot.com')
+    .bucket(PROJECT_NAME + '.appspot.com')
     .object()
     .onFinalize((object, context) => {
         if (object.name && object.name.startsWith('cropped_')){
@@ -113,7 +86,7 @@ export const fileAdded = functions.storage
             }).then(() => {
             console.log('Image downloaded locally to', tempFilePath);
             // Generate a crop using ImageMagick.
-            return spawn('convert', [tempFilePath, '-crop', '200x200+0+0>', tempFilePath]);
+            return spawn('convert', [tempFilePath, '-crop', '<200x200+0+0>', tempFilePath]);
             }).then(() => {
             console.log('Crop created at', tempFilePath);
             // We add a 'cropped_' prefix to thumbnails file name. That's where we'll upload the crop.
