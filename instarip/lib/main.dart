@@ -3,6 +3,13 @@ import 'package:instarip/login_screen.dart';
 import 'package:instarip/authentication.dart';
 import 'package:instarip/homepage.dart';
 
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+import 'package:watcher/watcher.dart';
+import 'dart:io';
+import 'package:image/image.dart' as Img;
+import 'package:firebase_storage/firebase_storage.dart';
+
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
@@ -15,7 +22,52 @@ class MyApp extends StatelessWidget {
         ),
         home: StreamBuilder(
             stream: authService.user,
-            builder: (context, snapshot) =>
-                (snapshot.hasData) ? GridList(uid: snapshot.data.uid) : LoginSignUpPage()));
+            builder: (context, snapshot) => (snapshot.hasData)
+                ? MainPage(snapshot.data.uid)
+                : LoginSignUpPage()));
+  }
+}
+
+class MainPage extends StatelessWidget {
+  final String uid;
+
+  MainPage(this.uid) {
+    listener();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GridList(uid: this.uid);
+  }
+
+  void uploadImage(String fileName, File uploadFile) {
+    var storageRef = FirebaseStorage.instance
+        .ref()
+        .child(uid)
+        .child("Uncategorized")
+        .child(fileName);
+    storageRef.getMetadata().then(print).catchError((data) {
+      storageRef.putFile(uploadFile);
+    });
+  }
+
+  void readImage(String filePath) {
+    File imageFile = new File(filePath);
+    Img.Image image = Img.decodeImage(imageFile.readAsBytesSync());
+    String fileName =
+        "${p.basenameWithoutExtension(filePath)}-${image.width.toString()}x${image.height.toString()}${p.extension(filePath)}";
+    uploadImage(fileName, imageFile);
+  }
+
+  void listener() async {
+    //"/storage/emulated/0/Pictures/Screenshots"
+    Directory externalDir = await getExternalStorageDirectory();
+    var watcher = DirectoryWatcher(
+        p.absolute(externalDir.path + "/Pictures/Screenshots"));
+    watcher.events.listen((event) {
+      if (event.type.toString() == "add") {
+        readImage(event.path.toString());
+      }
+    });
   }
 }
