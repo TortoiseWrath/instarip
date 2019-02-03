@@ -188,15 +188,15 @@ export const fileAdded = functions.storage
         if (object.name && path.basename(object.name).startsWith('cropped_')) {
             return "all good";
         }
-        let username: string = "userOne"
-        if (context.auth) 
-            username = context.auth.uid;
+        console.log("object name is " + object.name);
         if (object.name) {
-            const objectPathArr: string[] = object.name.split("/");
-            const objectName: string = objectPathArr[objectPathArr.length - 1];
-            const photosRef = db.doc(`users/${username}/folders/Uncategorized/photos/${objectName}`);
+            let username: string = object.name.split("/")[0];
+            console.log(username);
+            const photosRef = db.doc(`users/${username}/folders/Uncategorized/photos/${path.basename(object.name)}`);
+            console.log(object.name);
+            console.log(path.basename(object.name));
             photosRef.set({
-                name: object.name,
+                name: path.basename(object.name),
                 createdAt: context.timestamp
             }).catch();
         }
