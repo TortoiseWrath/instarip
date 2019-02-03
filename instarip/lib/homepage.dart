@@ -16,14 +16,14 @@ class GridList extends StatefulWidget {
 }
 
 class GridListState extends State<GridList> {
-  // var _folders = [];
+  var _folders;
   var _loading = false;
 
   @override
   void initState() {
     super.initState();
-    // imageService.getFolders();
     imageService.loading.listen((state) => setState(() => _loading = state));
+    _folders = imageService.getFolders();
   }
 
   @override
@@ -43,7 +43,7 @@ class GridListState extends State<GridList> {
                   top: false,
                   bottom: false,
                   child: FutureBuilder(
-                    future: imageService.getFolders(),
+                    future: _folders,
                     builder: (context, snapshot) {
                       if (snapshot.hasData) {
                         print(snapshot.data);
@@ -102,10 +102,10 @@ class GridPhotoItemState extends State<GridPhotoItem> {
     final Widget image = GestureDetector(
         onTap: () {
           // showPhoto(context);
-          // Navigator.push(
-          //     context,
-          //     MaterialPageRoute(
-          //         builder: (context) => GalleryPage(title: 'InstaRip', folder: this.widget.folder)));
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => GalleryPage(title: 'InstaRip', folder: this.widget.folder)));
         },
         child: Hero(
             key: Key(widget.folder.name),

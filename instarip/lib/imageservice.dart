@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 import 'authentication.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -44,6 +45,20 @@ class ImageService {
     // print(folders[0].name);
     loading.add(false);
     return folders;
+  }
+
+  Future<String> _getPhotoUrl(String uid, String folder, String file) async {
+    var url = await FirebaseStorage.instance
+        .ref()
+        .child(uid)
+        .child(folder)
+        .child(file)
+        .getDownloadURL();
+    return url.toString();
+  }
+
+  Future<List> getPhotoUrls(Folder folder) async {
+    return List.from(folder.photos.map((photo) => _getPhotoUrl(folder.uid, folder.name, photo)));
   }
 }
 
