@@ -188,23 +188,17 @@ export const fileAdded = functions.storage
         if (object.name && path.basename(object.name).startsWith('cropped_')) {
             return "all good";
         }
-        if (context.auth) {
-            const photosRef = db.doc(`users/${context.auth.uid}/folders/Uncategorized/photos`);
+        let username: string = "userOne"
+        if (context.auth) 
+            username = context.auth.uid;
+        if (object.name) {
+            const objectPathArr: string[] = object.name.split("/");
+            const objectName: string = objectPathArr[objectPathArr.length - 1];
+            const photosRef = db.doc(`users/${username}/folders/Uncategorized/photos/${objectName}`);
             photosRef.set({
                 name: object.name,
                 createdAt: context.timestamp
             }).catch();
-        }
-        else {
-            if (object.name) {
-                const objectPathArr: string[] = object.name.split("/");
-                const objectName: string = objectPathArr[objectPathArr.length - 1];
-                const photosRef = db.doc(`users/userOne/folders/Uncategorized/photos/${objectName}`);
-                photosRef.set({
-                    name: object.name,
-                    createdAt: context.timestamp
-                }).catch();
-            }
         }
 
         const fileBucket = object.bucket;
@@ -217,8 +211,7 @@ export const fileAdded = functions.storage
             const result: string = await acquireCropBounds(filePath);
             if (result == "we love you amber") {
                 //delete original image
-                const bucket = gcs.bucket(fileBucket);
-                await bucket.file(filePath).delete();
+                await gcs.bucket(fileBucket).file(filePath).delete();
 
                 return "mayank apparently does eat feces for breakfast"
             }
