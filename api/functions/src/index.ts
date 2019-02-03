@@ -6,28 +6,26 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as admin from 'firebase-admin';
 import * as os from 'os';
-import * as req from 'request';
 
 const vision = require('@google-cloud/vision');
-const {Storage} = require('@google-cloud/storage');
+const { Storage } = require('@google-cloud/storage');
 const gcs = new Storage(PROJECT_NAME);
 const spawn = require('child-process-promise').spawn;
 
 admin.initializeApp();
 const db = admin.firestore();
 
-export const acquireCropBounds = functions.https.onRequest((request, response) => {
+async function acquireCropBounds(imgName: string) {
     const client = new vision.ImageAnnotatorClient({
         projectId: 'instarip-lc336',
         keyFilename: SERVICE_ACCOUNT_PATH
     });
 
-    client.documentTextDetection(
-        `gs://${PROJECT_NAME}/${request.body["imgName"]}` 
-    ).then((results: any) => {
-        response.send(cropBoundsFromVision(results));
-    });
-});
+    var results = await client.documentTextDetection(
+        `gs://${PROJECT_NAME}/${imgName}`
+    );
+    return cropBoundsFromVision(results);
+};
 
 function cropBoundsFromVision(body: any): string {
     const textAnnotations: Array<Object> = body[0]["textAnnotations"];
@@ -38,12 +36,12 @@ function cropBoundsFromVision(body: any): string {
     textAnnotations.forEach((block, i) => {
         if ("description" in block) {
             if (!isNaN(block["description"])) {
-                const nextBlock: Object = textAnnotations[i+1];
+                const nextBlock: Object = textAnnotations[i + 1];
                 if ("description" in nextBlock) {
                     if (nextBlock["description"] == "likes") {
                         //we're good fam
                         bottomBoundary = nextBlock["boundingPoly"]["vertices"][2]["y"];
-                        const usernameBlock: Object = textAnnotations[i+2];
+                        const usernameBlock: Object = textAnnotations[i + 2];
                         if ("description" in usernameBlock)
                             username = usernameBlock["description"];
                     }
@@ -62,7 +60,7 @@ function cropBoundsFromVision(body: any): string {
         }
     });
 
-    return JSON.stringify({"bottomBoundary":bottomBoundary, "topBoundary": topBoundary});
+    return JSON.stringify({ "bottomBoundary": bottomBoundary, "topBoundary": topBoundary });
 }
 
 export const createUserRecord = functions.auth
@@ -78,10 +76,10 @@ export const createUserRecord = functions.auth
     });
 
 export const fileAdded = functions.storage
-    .bucket(PROJECT_NAME + '.appspot.com')
+    .bucket(PROJECT_NAME)
     .object()
-    .onFinalize((object, context) => {
-        if (object.name && object.name.startsWith('cropped_')) {
+    .onFinalize(async (object, context) => {
+        if (object.name && path.basename(object.name).startsWith('cropped_')) {
             return "all good";
         }
         if (context.auth) {
@@ -109,53 +107,42 @@ export const fileAdded = functions.storage
 
         if (filePath) {
             console.log(filePath);
-            let request: string = JSON.stringify({
-                "imgName": filePath
-            });
-        
-            req({
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                url: "https://us-central1-instarip-1c336.cloudfunctions.net/acquireCropBounds",
-                body: request
-            }, function (error, res, body) {
-                if (error) {
-                    return error;
-                }
-                else {
-                    // Download file from bucket.
-                    console.log(res.body);
-                    var boundaries = JSON.parse(res.body);
-                    console.log(boundaries);
-                    const bucket = gcs.bucket(fileBucket);
-                    const tempFilePath = path.join(os.tmpdir(), path.basename(filePath));
-                    const metadata = {
-                        contentType: contentType,
-                    };
-                    return bucket.file(filePath).download({
-                        destination: tempFilePath,
-                    }).then(() => {
-                        console.log('Image downloaded locally to', tempFilePath);
-                        // Generate a crop using ImageMagick.
-                        
-                        return spawn('convert', [tempFilePath, '-crop', '<200x200+0+0>', tempFilePath]);
-                    }).then(() => {
-                        console.log('Crop created at', tempFilePath);
-                        // We add a 'cropped_' prefix to thumbnails file name. That's where we'll upload the crop.
-                        const thumbFileName = `cropped_${path.basename(filePath)}`;
-                        const thumbFilePath = path.join(path.dirname(filePath), thumbFileName);
-                        // Uploading the cropped photo.
-                        return bucket.upload(tempFilePath, {
-                            destination: thumbFilePath,
-                            metadata: metadata,
-                        });
-                        // Once the crop has been uploaded delete the local file to free up disk space.
-                    }).then(() => fs.unlinkSync(tempFilePath));
-                }
-            });
-            
+            //use filePath
+
+            //call acquireCropBounds
+            var result = await acquireCropBounds(filePath);
+            // Download file from bucket.
+            console.log(result);
+            var boundaries = JSON.parse(result);
+            var height: number = boundaries["bottomBoundary"] - boundaries["topBoundary"];
+            var photoNameData = filePath.split("-");
+            var width: number = parseInt(photoNameData[photoNameData.length - 1].split("x")[0]);
+            console.log(boundaries);
+            const bucket = gcs.bucket(fileBucket);
+            const tempFilePath = path.join(os.tmpdir(), path.basename(filePath));
+            const metadata = {
+                contentType: contentType,
+            };
+            return bucket.file(filePath).download({
+                destination: tempFilePath,
+            }).then(() => {
+                console.log('Image downloaded locally to', tempFilePath);
+                // Generate a crop using ImageMagick.
+
+                return spawn('convert', [tempFilePath, '-crop', `<${width}x${height}+0+${boundaries["topBoundary"]}>`, tempFilePath]);
+            }).then(() => {
+                console.log('Crop created at', tempFilePath);
+                // We add a 'cropped_' prefix to thumbnails file name. That's where we'll upload the crop.
+                const thumbFileName = `cropped_${path.basename(filePath)}`;
+                const thumbFilePath = path.join(path.dirname(filePath), thumbFileName);
+                // Uploading the cropped photo.
+                return bucket.upload(tempFilePath, {
+                    destination: thumbFilePath,
+                    metadata: metadata,
+                });
+                // Once the crop has been uploaded delete the local file to free up disk space.
+            }).then(() => fs.unlinkSync(tempFilePath));
+
         }
         return "it's chill";
     });
