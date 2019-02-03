@@ -71,10 +71,13 @@ class AuthService {
     return ref.setData({
       'uid': user.uid,
       'email': user.email,
-      // 'photoURL': user.photoUrl,
-      // 'displayName': user.displayName,
       'lastSeen': DateTime.now()
     }, merge: true);
+  }
+
+  Future<FirebaseUser> getCurrentUser() async {
+    FirebaseUser user = await _auth.currentUser();
+    return user;
   }
 
   void signOut() {
@@ -84,49 +87,3 @@ class AuthService {
 
 // TODO refactor global to InheritedWidget
 final AuthService authService = AuthService();
-
-// import 'dart:async';
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:google_sign_in/google_sign_in.dart';
-// import 'package:rxdart/rxdart.dart';
-
-// abstract class BaseAuth {
-//   Future<String> signIn(String email, String password);
-
-//   Future<String> signUp(String email, String password);
-
-//   Future<String> googleSignIn(String email);
-
-//   Future<FirebaseUser> getCurrentUser();
-
-//   Future<void> signOut();
-// }
-
-// class Auth implements BaseAuth {
-//   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-
-//   Future<String> signIn(String email, String password) async {
-//     FirebaseUser user = await _firebaseAuth.signInWithEmailAndPassword(
-//         email: email, password: password);
-//     return user.uid;
-//   }
-
-//   Future<String> signUp(String email, String password) async {
-//     FirebaseUser user = await _firebaseAuth.createUserWithEmailAndPassword(
-//         email: email, password: password);
-//     return user.uid;
-//   }
-
-//   Future<String> googleSignIn(String email) async {
-//     return "TODO";
-//   }
-
-//   Future<FirebaseUser> getCurrentUser() async {
-//     FirebaseUser user = await _firebaseAuth.currentUser();
-//     return user;
-//   }
-
-//   Future<void> signOut() async {
-//     return _firebaseAuth.signOut();
-//   }
-// }
