@@ -30,7 +30,7 @@ class _GalleryPageState extends State<GalleryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+          backgroundColor: Color.fromRGBO(0, 0, 0, 50),
       ),
       body: FutureBuilder(
           future: _photos,
@@ -74,7 +74,9 @@ class _ImageTile extends StatelessWidget {
     Navigator.push(context,
         MaterialPageRoute<void>(builder: (BuildContext context) {
       return Scaffold(
-        appBar: AppBar(actions: <Widget>[
+        appBar: AppBar(
+          backgroundColor: Color.fromRGBO(0, 0, 0, 50),
+          actions: <Widget>[
           IconButton(
               icon: Icon(Icons.share),
               onPressed: () async {
@@ -83,7 +85,7 @@ class _ImageTile extends StatelessWidget {
                 await Share.share(imagePath);
               })
         ]),
-        body: Container(child: networkImage),
+        body: Center(child: Container(child: networkImage)),
       );
     }));
   }

@@ -3,6 +3,7 @@ import 'package:instarip/gallery.dart';
 import 'package:instarip/authentication.dart';
 import 'package:instarip/imageservice.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 
 class GridList extends StatefulWidget {
   final String uid;
@@ -31,12 +32,20 @@ class GridListState extends State<GridList> {
     // requestStoragePermission();
   }
 
+  Future<void> updateFolders() async {
+    await imageService.getFolders();
+    setState(() {
+      _folders = imageService.getFolders();;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final Orientation orientation = MediaQuery.of(context).orientation;
     return Scaffold(
         appBar: AppBar(
-          title: const Text('InstaRip'),
+          title: Center(child: const Text('InstaRip')),
+          backgroundColor: Color.fromRGBO(0, 0, 0, 50),
           actions: <Widget>[
             IconButton(
                 icon: Icon(Icons.exit_to_app), onPressed: authService.signOut)
@@ -54,12 +63,14 @@ class GridListState extends State<GridList> {
                           // print(snapshot.data);
                           List<GridPhotoItem> grid = List.from(snapshot.data
                               .map((folder) => GridPhotoItem(folder: folder)));
-                          return GridView.count(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 4.0,
-                              crossAxisSpacing: 4.0,
-                              padding: const EdgeInsets.all(12.0),
-                              children: grid);
+                          return LiquidPullToRefresh(onRefresh: updateFolders,
+                                                      child: GridView.count(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 4.0,
+                                crossAxisSpacing: 4.0,
+                                padding: const EdgeInsets.all(12.0),
+                                children: grid),
+                          );
                         } else {
                           return Center(child: CircularProgressIndicator());
                         }

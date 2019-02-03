@@ -33,7 +33,7 @@ class ImageService {
 
       List<String> filenames = [];
       photos.documents.forEach((photo) {
-        var filename = photo.documentID;
+        var filename = "cropped_${photo.documentID}";
         filenames.add(filename);
       });
 
