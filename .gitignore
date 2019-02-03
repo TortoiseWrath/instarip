@@ -1,2 +1,10 @@
 .DS_Store
 api/functions/.DS_Store
+tests/
+keys/
+API_KEY
+api/functions/lib/
+node_modules/
+SERVICE_ACCOUNT.json
+.vscode
+BEARER_TOKEN
