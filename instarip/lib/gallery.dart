@@ -1,22 +1,57 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:photo_view/photo_view.dart';
+import 'package:instarip/homepage.dart';
+import 'package:instarip/authentication.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class GalleryPage extends StatefulWidget {
-  GalleryPage({Key key, this.title}) : super(key: key);
   final String title;
+  final Folder folder;
+  
+  GalleryPage({Key key, this.title, this.folder}) : super(key: key);
 
   @override
   _GalleryPageState createState() => _GalleryPageState();
 }
 
 class _GalleryPageState extends State<GalleryPage> {
+  
+  var _photos = [];
+
+  // gets file names for all photos under the folder
+  getPhotos() async {
+    var photos = [];
+    var photoDocs = await Firestore.instance
+        .collection('users/${widget.folder.uid}/folders/${widget.folder.name}/photos')
+        .getDocuments();
+    photoDocs.documents.forEach((snapshot) async {
+      var url = await FirebaseStorage.instance
+        .ref()
+        .child(widget.folder.uid)
+        .child(snapshot.documentID)
+        .getDownloadURL();
+      photos.add(url.toString());
+      setState(() {
+        _photos = photos;
+      });
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getPhotos();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: ImageGrid(),
+      body: ImageGrid(_photos),
     );
   }
 }
@@ -35,11 +70,17 @@ List<Widget> _tiles = const <Widget>[
 ];
 
 class ImageGrid extends StatelessWidget {
+  final photos;
+
+  const ImageGrid(this.photos);
+
   @override
   Widget build(BuildContext context) {
     return Padding(
         padding: const EdgeInsets.only(top: 12.0),
-        child: GridView.count(crossAxisCount: 2, children: _tiles));
+        child: GridView.count(crossAxisCount: 2, children: _tiles//photos.map((photo) => _ImageTile(photo))
+        )
+      );
   }
 }
 

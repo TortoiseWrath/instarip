@@ -16,6 +16,6 @@ class MyApp extends StatelessWidget {
         home: StreamBuilder(
             stream: authService.user,
             builder: (context, snapshot) =>
-                (snapshot.hasData) ? GridList() : LoginSignUpPage()));
+                (snapshot.hasData) ? GridList(uid: snapshot.data.uid) : LoginSignUpPage()));
   }
 }
