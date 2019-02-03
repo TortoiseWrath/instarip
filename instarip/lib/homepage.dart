@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:instarip/gallery.dart';
 import 'package:instarip/authentication.dart';
+import 'package:instarip/imageservice.dart';
 
 class GridList extends StatefulWidget {
   final String uid;
@@ -15,31 +16,14 @@ class GridList extends StatefulWidget {
 }
 
 class GridListState extends State<GridList> {
-  var _folders = [];
+  // var _folders = [];
+  var _loading = false;
 
   @override
   void initState() {
     super.initState();
-    getFolders();
-  }
-
-  // gets all the folder data asynchronously
-  Future<List> getFolders() async {
-    var folders = [];
-    var folderDocs = await Firestore.instance
-        .collection('users/${widget.uid}/folders')
-        .getDocuments();
-    folderDocs.documents.forEach((snapshot) async {
-      var photos = await snapshot.reference.collection('photos').getDocuments();
-
-      var preview = photos.documents[0].documentID;
-      
-      folders.add(Folder(uid: this.widget.uid, name: snapshot.documentID, preview: preview));
-    });
-    setState(() {
-      _folders = folders;
-    });
-    return folders;
+    // imageService.getFolders();
+    imageService.loading.listen((state) => setState(() => _loading = state));
   }
 
   @override
@@ -58,17 +42,22 @@ class GridListState extends State<GridList> {
               child: SafeArea(
                   top: false,
                   bottom: false,
-                  child: FutureBuilder<List>(
-                    future: getFolders(),
+                  child: FutureBuilder(
+                    future: imageService.getFolders(),
                     builder: (context, snapshot) {
-                      return GridView.count(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 4.0,
-                          crossAxisSpacing: 4.0,
-                          padding: const EdgeInsets.all(4.0),
-                          children: snapshot.data
-                              .map((folder) => GridPhotoItem(folder: folder))
-                              .toList());
+                      if (snapshot.hasData) {
+                        print(snapshot.data);
+                        List<GridPhotoItem> grid = List.from(snapshot.data.map((folder) => GridPhotoItem(folder: folder)));
+                        return GridView.count(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 4.0,
+                            crossAxisSpacing: 4.0,
+                            padding: const EdgeInsets.all(4.0),
+                            children: grid
+                        );
+                      } else {
+                        return Center(child: CircularProgressIndicator());
+                      }
                     }
                   )))
         ]));
@@ -99,7 +88,7 @@ class GridPhotoItemState extends State<GridPhotoItem> {
     var url = await FirebaseStorage.instance
         .ref()
         .child(this.widget.folder.uid)
-        .child(this.widget.folder.preview)
+        .child(this.widget.folder.photos.last)
         .getDownloadURL();
     print(url);
     setState(() {
@@ -113,14 +102,14 @@ class GridPhotoItemState extends State<GridPhotoItem> {
     final Widget image = GestureDetector(
         onTap: () {
           // showPhoto(context);
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => GalleryPage(title: 'InstaRip', folder: this.widget.folder)));
+          // Navigator.push(
+          //     context,
+          //     MaterialPageRoute(
+          //         builder: (context) => GalleryPage(title: 'InstaRip', folder: this.widget.folder)));
         },
         child: Hero(
-            key: Key(widget.folder.preview),
-            tag: widget.folder.preview,
+            key: Key(widget.folder.name),
+            tag: widget.folder.name,
             child: Image.network(
               this.imageUrl,
               fit: BoxFit.cover,
@@ -154,11 +143,4 @@ class _GridTitleText extends StatelessWidget {
       child: Text(text),
     );
   }
-}
-
-class Folder {
-  Folder({this.uid, this.preview, this.name});
-  final String uid;
-  final String preview;
-  final String name;
 }
